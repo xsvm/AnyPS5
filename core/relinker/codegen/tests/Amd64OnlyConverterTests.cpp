@@ -141,6 +141,12 @@ void decoderLengths() {
     const Bytes lastRex = {0x41, 0x48, 0x8B, 0x00, 0x90};
     const auto last = decoder.DecodeInstruction(lastRex.data(), lastRex.size());
     require(last.Length == 4 && last.OpcodeOffset == 2 && last.RexPrefix == 0x48, "The REX before the opcode was not the one kept");
+    for (const auto& controlMove : std::vector<Bytes>{{0x0F, 0x20, 0x04}, {0x0F, 0x22, 0x05}, {0x0F, 0x21, 0x44}, {0x44, 0x0F, 0x23, 0x84}}) {
+        padded = controlMove;
+        padded.insert(padded.end(), 8, 0x90);
+        const auto info = decoder.DecodeInstruction(padded.data(), padded.size());
+        require(info.Length == controlMove.size() && !info.HasRipRelativeDisp, "MOV to or from a control or debug register was decoded with a memory operand");
+    }
 }
 
 const std::vector<Bytes> kRipRelativeVectorLoads = {

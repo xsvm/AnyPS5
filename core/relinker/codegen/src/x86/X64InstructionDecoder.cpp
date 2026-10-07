@@ -270,7 +270,9 @@ std::size_t X64InstructionDecoder::Decode(const std::uint8_t* data, std::size_t 
     const std::uint8_t modrm = data[pos];
     pos += 1;
 
-    const auto mod = static_cast<std::uint8_t>((modrm >> ModRmModShift) & ModRmModMask);
+    const bool registerOnlyModRm = twoByteOpcode && !threeByteEscape && !vexPresent && !evexPresent &&
+        opcode >= TwoByteMovCrDrMin && opcode <= TwoByteMovCrDrMax;
+    const auto mod = registerOnlyModRm ? ModRmModRegister : static_cast<std::uint8_t>((modrm >> ModRmModShift) & ModRmModMask);
     const auto reg = static_cast<std::uint8_t>((modrm >> ModRmRegShift) & ModRmRegMask);
     const auto rm = static_cast<std::uint8_t>(modrm & ModRmRmMask);
 
@@ -536,6 +538,8 @@ DecodedInstructionInfo X64InstructionDecoder::DecodeInstruction(
 
     if (hasModRm && pos < info.Length)
         readModRm(pos);
+    if (twoByteOpcode && op >= TwoByteMovCrDrMin && op <= TwoByteMovCrDrMax)
+        info.HasRipRelativeDisp = false;
 
     info.FlowKind = ControlFlowKind::Sequential;
     return info;
